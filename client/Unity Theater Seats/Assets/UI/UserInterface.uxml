@@ -1,0 +1,36 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="DefaultStyle.uss" />
+    <ui:VisualElement name="Background" style="flex-grow: 1; align-items: center; justify-content: center; display: flex; visibility: visible; background-color: rgb(225, 225, 225);">
+        <ui:VisualElement name="Header" style="flex-direction: column; position: absolute; top: 0; flex-grow: 1; width: 100%; height: 25px; display: flex;">
+            <ui:Label text="Unity Theater Seats" display-tooltip-when-elided="true" name="ProjectNameLabel" enable-rich-text="true" style="align-items: flex-start; -unity-font-style: bold; font-size: 16px; -unity-text-outline-width: 0; -unity-text-outline-color: rgb(192, 192, 192); position: absolute; left: 5px; top: 0;" />
+            <ui:Label display-tooltip-when-elided="true" name="UserNameLabel" style="align-items: flex-end; justify-content: flex-start; flex-direction: row-reverse; position: absolute; right: 5px; top: 0; -unity-font-style: bold; display: flex;" />
+        </ui:VisualElement>
+        <ui:VisualElement name="Login" style="display: none; height: 425px; width: 505px; border-top-left-radius: 15px; border-bottom-left-radius: 15px; border-top-right-radius: 15px; border-bottom-right-radius: 15px; background-color: rgb(185, 185, 185); justify-content: center; align-items: center;">
+            <ui:Label text="Login" display-tooltip-when-elided="true" style="position: absolute; top: 18px; font-size: 20px; -unity-font-style: bold;" />
+            <ui:TextField picking-mode="Ignore" text="name" name="NameEntryTextField" style="-unity-font-style: italic; width: 50%; height: 10%; -unity-text-align: upper-center; font-size: 18px; justify-content: flex-start;" />
+            <ui:Button text="Submit" display-tooltip-when-elided="true" name="LoginButton" style="height: 10%; width: 50%; display: flex; flex-grow: 0; flex-shrink: 0; flex-direction: column; justify-content: center; border-left-width: 0; border-right-width: 0; border-top-width: 0; border-bottom-width: 0; border-top-left-radius: 7px; border-bottom-left-radius: 7px; border-top-right-radius: 7px; border-bottom-right-radius: 7px; -unity-font-style: bold; font-size: 20px; color: rgb(255, 255, 255); -unity-text-outline-width: 1px; -unity-text-outline-color: rgb(0, 0, 0); background-color: rgb(66, 77, 188); max-width: none; min-width: auto; max-height: none; min-height: auto; align-items: center; -unity-background-scale-mode: stretch-to-fill;" />
+        </ui:VisualElement>
+        <ui:VisualElement name="ReserveSeat" style="display: flex; align-items: center; flex-grow: 1; flex-direction: column; position: absolute; top: 35px; width: 100%; height: 90%;">
+            <ui:VisualElement name="SelectDate" class="DefaultRadioGroupStyle">
+                <ui:Label text="1. Select Date" display-tooltip-when-elided="true" name="Instructions" class="InstructionLabel" />
+                <ui:RadioButtonGroup name="DateButtons" class="RadioGroupAlt" />
+            </ui:VisualElement>
+            <ui:VisualElement name="SelectFilm" class="DefaultRadioGroupStyle" style="flex-direction: column;">
+                <ui:Label text="2. Select Film" display-tooltip-when-elided="true" name="Instructions" class="InstructionLabel" style="position: relative; top: 5px; margin-bottom: 10px;" />
+                <ui:RadioButtonGroup name="FilmButtons" class="RadioGroupAlt" style="flex-wrap: wrap; align-items: center; justify-content: center;" />
+            </ui:VisualElement>
+            <ui:VisualElement name="SelectShow" class="DefaultRadioGroupStyle">
+                <ui:Label text="3. Select Showtime" display-tooltip-when-elided="true" name="Instructions" class="InstructionLabel" style="position: relative; top: 5px; margin-bottom: 10px;" />
+                <ui:RadioButtonGroup name="ShowButtons" class="RadioGroupAlt" />
+            </ui:VisualElement>
+            <ui:VisualElement name="SelectSeat" class="DefaultRadioGroupStyle" style="flex-grow: 1; flex-wrap: nowrap; width: 700px; height: 750px; max-width: 700px; max-height: 750px; min-width: 700px; min-height: 750px;">
+                <ui:Label text="4. Select Seats" display-tooltip-when-elided="true" name="Instructions" class="InstructionLabel" style="position: relative; top: 5px; margin-bottom: 10px;" />
+                <ui:VisualElement name="SeatingChartRoot" style="flex-grow: 1; align-items: center; width: 640px; height: 400px; -unity-background-image-tint-color: rgb(255, 255, 255); background-color: rgb(152, 152, 152); justify-content: flex-start; max-width: 640px; max-height: 400px; min-width: 640px; min-height: 400px;">
+                    <ui:IMGUIContainer name="ScreenImage" style="width: 90%; height: 15px; background-color: rgb(0, 0, 0);" />
+                    <ui:Label text="The Screen" display-tooltip-when-elided="true" name="ScreenLabel" style="color: rgb(255, 255, 255);" />
+                    <ui:VisualElement name="SeatContainer" style="align-items: center; flex-grow: 1; flex-direction: row; flex-wrap: wrap; width: 100%; height: 100%; justify-content: flex-start; max-width: 100%; max-height: 100%; min-width: 100px; min-height: 100%; background-color: rgb(64, 64, 64); margin-left: 0; margin-right: 0;" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,0 +1,23 @@
+.DefaultRadioGroupStyle {
+    width: 90%;
+    align-items: center;
+    justify-content: flex-start;
+    flex-wrap: wrap-reverse;
+    flex-grow: 0;
+    flex-direction: column;
+}
+
+.InstructionLabel {
+    position: relative;
+    top: 5px;
+    margin-bottom: 10px;
+    width: 100%;
+    -unity-text-align: upper-center;
+    background-color: rgb(190, 190, 190);
+}
+
+.RadioGroupAlt {
+    align-items: flex-start;
+    flex-direction: row;
+    flex-wrap: wrap;
+}

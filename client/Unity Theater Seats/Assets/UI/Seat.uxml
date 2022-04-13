@@ -1,0 +1,7 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="Seat.uss" />
+    <ui:VisualElement name="Background" style="width: 64%; height: 64%; flex-grow: 1; min-width: 64px; min-height: 64px; max-width: 64%; max-height: 64%; align-items: center; justify-content: center;">
+        <ui:VisualElement name="Icon" style="align-items: center; justify-content: center; width: 64%; height: 64px; max-width: 64px; max-height: 64px; min-height: 64px; min-width: 64px; background-image: url(&apos;/Assets/Images/circle.png&apos;);" />
+        <ui:Button display-tooltip-when-elided="true" name="SelectButton" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; margin-left: 0; margin-right: 0; margin-top: 0; margin-bottom: 0; padding-left: 3px; padding-right: 3px; padding-top: 3px; padding-bottom: 3px; background-color: rgba(188, 188, 188, 0);" />
+    </ui:VisualElement>
+</ui:UXML>
