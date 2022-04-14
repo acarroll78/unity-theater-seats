@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using WebSocketSharp;
 using WebSocketSharp.Server;
+using FlatBuffers;
 
 namespace Unity_Theater_Seats_Server
 {
@@ -22,19 +21,15 @@ namespace Unity_Theater_Seats_Server
 
 		protected override void OnMessage(MessageEventArgs e)
 		{
-			Console.WriteLine("/ReserveSeat Received message from client: " + e.Data);
+			ByteBuffer buffer = new ByteBuffer(e.RawData);
+			Reservation newReservation = Reservation.GetRootAsReservation(buffer);
 
-			var options = new JsonSerializerOptions
-			{
-				Converters = { new JsonStringEnumConverter() },
-				WriteIndented = false,
-			};
+			Console.WriteLine("/ReserveSeat Received message from client. User Id ({0}), Show Id ({1}), Seat Id ({2})", newReservation.UserId, newReservation.ShowId, newReservation.SeatId);
 
-			Reservation res = JsonSerializer.Deserialize<Reservation>(e.Data, options);
-			if(ReservationDB.AddReservation(res))
+			if (ReservationDB.AddReservation(newReservation))
 			{
 				// Let all users know someone reserved a seat (this is overkill but works)
-				Sessions.Broadcast(e.Data);
+				Sessions.Broadcast(e.RawData);
 			}
 		}
 	}

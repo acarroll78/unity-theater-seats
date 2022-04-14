@@ -1,6 +1,7 @@
 ﻿using System;
 using WebSocketSharp;
 using WebSocketSharp.Server;
+using FlatBuffers;
 
 namespace Unity_Theater_Seats_Server
 {
@@ -10,7 +11,7 @@ namespace Unity_Theater_Seats_Server
 	public class LoginBehavior : WebSocketBehavior
 	{
 		private UserDatabase UserDB;
-		private User currentUser = null;
+		private User currentUser;
 
 		public void Setup(UserDatabase UserDB)
 		{
@@ -24,23 +25,23 @@ namespace Unity_Theater_Seats_Server
 
 		protected override void OnClose(CloseEventArgs e)
 		{
-			if(currentUser != null)
-			{
-				Console.WriteLine("/Login Connection closed for user {0}.", currentUser.Name);
-			}
-			else
-			{
-				Console.WriteLine("/Login Connection closed for unknown user.");
-			}
+			Console.WriteLine("/Login Connection closed");
 		}
 
 		protected override void OnMessage(MessageEventArgs e)
 		{
-			Console.WriteLine("Received message from client: " + e.Data);
+			Console.WriteLine("/Login Received message from client.");
 
 			// Look up the user's name and return their (new or established) id
 			currentUser = UserDB.GetOrAddUserByName(e.Data);
-			Send(BitConverter.GetBytes(currentUser.Id));
+
+			FlatBufferBuilder builder = new FlatBufferBuilder(256);
+			StringOffset nameOffset = builder.CreateString(currentUser.Name);
+			Offset<User> newUserOffset = User.CreateUser(builder, nameOffset, currentUser.Id);
+			builder.Finish(newUserOffset.Value);
+			byte[] bytes = builder.SizedByteArray();
+
+			Send(bytes);
 		}
 	}
 }

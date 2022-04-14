@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using WebSocketSharp;
 using WebSocketSharp.Server;
 
 namespace Unity_Theater_Seats_Server
@@ -9,35 +7,23 @@ namespace Unity_Theater_Seats_Server
 	{
 		static void Main(string[] args)
 		{
-			UserDatabase userDatabase;
-			FilmDatabase filmDatabase;
-			ShowDatabase showDatabase;
-			ReservationDatabase reservationDatabase;
+			UserDatabase userDatabase = new UserDatabase();
+			FilmDatabase filmDatabase = new FilmDatabase();
+			ShowDatabase showDatabase = new ShowDatabase();
+			ReservationDatabase reservationDatabase = new ReservationDatabase();
 
 			// Load all data from disk and populate relevant members.
 			// 1. Users
-			User[] existingUsers;
-			JsonDataHelper.ReadJsonData<User[]>(@"data\users.json", out existingUsers);
-			userDatabase = new UserDatabase(existingUsers);
-			existingUsers = null;
+			FlatBufferDataHelper.InitializeUserDatabase(userDatabase, @"data\users.bin", printDetails:false);
 
 			// 2. Films
-			Film[] activeFilms;
-			JsonDataHelper.ReadJsonData<Film[]>(@"data\films.json", out activeFilms);
-			filmDatabase = new FilmDatabase(activeFilms);
-			activeFilms = null;
+			FlatBufferDataHelper.InitializeFilmDatabase(filmDatabase, @"data\films.bin", printDetails:false);
 
 			// 3. Shows
-			Show[] activeShows;
-			JsonDataHelper.ReadJsonData<Show[]>(@"data\shows.json", out activeShows);
-			showDatabase = new ShowDatabase(activeShows);
-			activeShows = null;
+			FlatBufferDataHelper.InitializeShowDatabase(showDatabase, @"data\shows.bin", printDetails:false);
 
 			// 4. Reservations
-			Reservation[] activeReservations;
-			JsonDataHelper.ReadJsonData<Reservation[]>(@"data\reservations.json", out activeReservations);
-			reservationDatabase = new ReservationDatabase(activeReservations);
-			activeReservations = null;
+			FlatBufferDataHelper.InitializeReservationDatabase(reservationDatabase, @"data\reservations.bin", printDetails:false);
 
 			// Setup WebSocket and routes
 			WebSocketServer webSocketServer = new WebSocketServer("ws://localhost:3278");
@@ -49,7 +35,6 @@ namespace Unity_Theater_Seats_Server
 				loginBehavior.Setup(userDatabase);
 				return loginBehavior;
 			};
-
 			webSocketServer.AddWebSocketService("/Login", SetupLogin);
 
 			// ReserveSeat Route
@@ -62,20 +47,32 @@ namespace Unity_Theater_Seats_Server
 			webSocketServer.AddWebSocketService("/ReserveSeat", SetupReserveSeat);
 
 			// RequestFilms Route
-			webSocketServer.AddWebSocketService<RequestFilmsBehavior>("/RequestFilms");
+			System.Func<RequestFilmsBehavior> SetupRequestFilms = () =>
+			{
+				RequestFilmsBehavior requestFilmsBehavior = new RequestFilmsBehavior();
+				requestFilmsBehavior.Setup(filmDatabase);
+				return requestFilmsBehavior;
+			};
+			webSocketServer.AddWebSocketService("/RequestFilms", SetupRequestFilms);
 
 			// RequestShows Route
-			webSocketServer.AddWebSocketService<RequestShowsBehavior>("/RequestShows");
+			System.Func<RequestShowsBehavior> SetupRequestShows = () =>
+			{
+				RequestShowsBehavior requestShowsBehavior = new RequestShowsBehavior();
+				requestShowsBehavior.Setup(showDatabase);
+				return requestShowsBehavior;
+			};
+			webSocketServer.AddWebSocketService("/RequestShows", SetupRequestShows);
 
 			// RequestReservations Route
-			System.Func<RequestReservationsBehavior> SetupRequestReservation = () =>
+			System.Func<RequestReservationsBehavior> SetupRequestReservations = () =>
 			{
 				RequestReservationsBehavior requestReservationBehavior = new RequestReservationsBehavior();
 				requestReservationBehavior.Setup(reservationDatabase);
 				return requestReservationBehavior;
 			};
 
-			webSocketServer.AddWebSocketService("/RequestReservations", SetupRequestReservation);
+			webSocketServer.AddWebSocketService("/RequestReservations", SetupRequestReservations);
 
 			// Officially start the WebSocket server
 			webSocketServer.Start();
@@ -85,8 +82,8 @@ namespace Unity_Theater_Seats_Server
 			webSocketServer.Stop();
 
 			// Write User and Reservation Databases to JSON before exiting.
-			JsonDataHelper.WriteUsersToFile(userDatabase.GetAllUsers());
-			JsonDataHelper.WriteReservationsToFile(reservationDatabase.GetAllReservations());
+			// JsonDataHelper.WriteUsersToFile(userDatabase.GetAllUsers());
+			// JsonDataHelper.WriteReservationsToFile(reservationDatabase.GetAllReservations());
 			Console.WriteLine("Server shutting down.");
 		}
 	}

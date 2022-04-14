@@ -4,12 +4,15 @@ using System.Linq;
 
 public class ShowDatabase
 {
-	private Dictionary<UInt32, Show> Shows; //< Keyed by ShowId.
+	private Dictionary<UInt32, Show> Shows = new Dictionary<UInt32, Show>(); //< Keyed by ShowId.
+
+	public ShowDatabase()
+	{
+
+	}
 
 	public ShowDatabase(Show[] ActiveShows)
 	{
-		Shows = new Dictionary<UInt32, Show>();
-
 		foreach (Show activeShow in ActiveShows)
 		{
 			Shows.Add(activeShow.Id, activeShow);
@@ -19,23 +22,28 @@ public class ShowDatabase
 	// Returns null if not found.
 	public Show GetShowById(UInt32 Id)
 	{
-		return Shows.ContainsKey(Id) ? Shows[Id] : null;
+		return Shows.ContainsKey(Id) ? Shows[Id] : new Show();
 	}
 
 	public DateTime[] GetAllShowDates()
 	{
-		SortedSet<DateTime> showDates = new SortedSet<DateTime>();
+		List<DateTime> showDates = new List<DateTime>();
 		foreach(Show show in Shows.Values)
 		{
-			DateTime date = new DateTime(show.ShowTime.Year, show.ShowTime.Month, show.ShowTime.Day);
-
-			if (!showDates.Contains(date))
+			DateTime tempDate = new DateTime(show.ShowTime);
+			DateTime modifiedDate = new DateTime(tempDate.Year, tempDate.Month, tempDate.Day);
+			if(!showDates.Contains(modifiedDate))
 			{
-				showDates.Add(date);
+				showDates.Add(modifiedDate);
 			}
 		}
-
+		showDates.Sort();
 		return showDates.ToArray();
+	}
+
+	public Show[] GetAllShows()
+	{
+		return Shows.Values.ToArray();
 	}
 
 	public UInt32[] GetFilmIdsForDate(DateTime Date)
@@ -43,9 +51,10 @@ public class ShowDatabase
 		SortedSet<UInt32> films = new SortedSet<UInt32>();
 		foreach (Show show in Shows.Values)
 		{
-			if( show.ShowTime.Year == Date.Year &&
-				show.ShowTime.Month == Date.Month &&
-				show.ShowTime.Day == Date.Day)
+			DateTime showDate = new DateTime(show.ShowTime);
+			if( showDate.Year == Date.Year &&
+				showDate.Month == Date.Month &&
+				showDate.Day == Date.Day)
 			{
 				films.Add(show.FilmId);
 			}
@@ -56,18 +65,30 @@ public class ShowDatabase
 
 	public Show[] GetShowsForFilmAndDate(UInt32 FilmId, DateTime Date)
 	{
-		SortedSet<Show> shows = new SortedSet<Show>();
+		List<Show> shows = new List<Show>();
 		foreach (Show show in Shows.Values)
 		{
-			if (show.ShowTime.Year == Date.Year &&
-				show.ShowTime.Month == Date.Month &&
-				show.ShowTime.Day == Date.Day && 
+			DateTime showDate = new DateTime(show.ShowTime);
+			if (showDate.Year == Date.Year &&
+				showDate.Month == Date.Month &&
+				showDate.Day == Date.Day && 
 				show.FilmId == FilmId)
 			{
 				shows.Add(show);
 			}
 		}
 
+		shows.Sort(delegate (Show t1, Show t2) { return t1.ShowTime.CompareTo(t2.ShowTime); });
+
 		return shows.ToArray();
 	}
+
+	public void AddShow(Show NewShow)
+	{
+		if (!Shows.ContainsKey(NewShow.Id))
+		{
+			Shows.Add(NewShow.Id, NewShow);
+		}
+	}
+
 }

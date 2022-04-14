@@ -43,7 +43,9 @@ public class ReservationDatabase
 		// Add these uniquely; this is super brute force at the moment.
 		foreach (Reservation reservation in Reservations)
 		{
-			if (reservation == NewReservation)
+			if (reservation.SeatId == NewReservation.SeatId &&
+				reservation.ShowId == NewReservation.ShowId &&
+				reservation.UserId == NewReservation.UserId)
 			{
 				return false;
 			}

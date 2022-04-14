@@ -1,0 +1,38 @@
+table Film {
+  name:string;
+  id:uint = 0;
+}
+
+table FilmList{
+Films:[Film];
+}
+
+table Reservation {
+  userId:uint = 0;
+  showId:uint = 0;
+  seatId:uint = 0;
+}
+
+table ReservationList{
+Reservations:[Reservation];
+}
+
+table Show {
+  id:uint = 0;
+  filmId:uint = 0;
+  showTime:long = 0;
+}
+
+table ShowList{
+Shows:[Show];
+}
+
+table User {
+  name:string;
+  id:uint = 0;
+}
+
+table UserList{
+Users:[User];
+}
+

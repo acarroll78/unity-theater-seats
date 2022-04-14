@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEngine.UIElements;
 
 // Controls all of the logic around the User Interface in the app
-public class UserInterface : MonoBehaviour
+public class UserInterfaceController : MonoBehaviour
 {
     private enum ScreenState
 	{
@@ -136,8 +136,6 @@ public class UserInterface : MonoBehaviour
 				{
                     ReserveSeatRoot.style.display = DisplayStyle.Flex;
                     PopulateDateButtons();
-                    PopulateFilmButtons();
-                    PopulateShowButtons();
 
                     break;
 				}
@@ -181,10 +179,10 @@ public class UserInterface : MonoBehaviour
         DateButtons.Clear();
 
         RadioButton firstButton = null;
-        foreach (DateTime showtime in webClient.ShowDB.GetAllShowDates())
+        foreach (DateTime showTime in webClient.ShowDB.GetAllShowDates())
 		{
-            RadioButton newButton = new RadioButton() { text = (showtime.Month.ToString() + "/" + showtime.Day.ToString() + "/" +showtime.Year.ToString()) };
-            newButton.RegisterValueChangedCallback((evt) => { OnDateChanged(evt, showtime.Month, showtime.Day, showtime.Year); });
+            RadioButton newButton = new RadioButton() { text = (showTime.Month.ToString() + "/" + showTime.Day.ToString() + "/" + showTime.Year.ToString()) };
+            newButton.RegisterValueChangedCallback((evt) => { OnDateChanged(evt, showTime.Month, showTime.Day, showTime.Year); });
             DateButtons.Add(newButton);
 
             if(firstButton == null)
@@ -232,7 +230,8 @@ public class UserInterface : MonoBehaviour
 
         foreach (Show show in webClient.ShowDB.GetShowsForFilmAndDate(selectedFilm, selectedDate))
         {
-            RadioButton newButton = new RadioButton() { text = show.ShowTime.ToString("h:mm tt") };
+            DateTime showTime = new DateTime(show.ShowTime);
+            RadioButton newButton = new RadioButton() { text = showTime.ToString("h:mm tt") };
             newButton.RegisterValueChangedCallback((evt) => { OnShowChanged(evt, show.Id); });
             ShowButtons.Add(newButton);
 
@@ -255,11 +254,20 @@ public class UserInterface : MonoBehaviour
 
         for (UInt32 i = 1; i <= numSeats; ++i)
 		{
-            Reservation resForSeat = reservations.Find(x => x.SeatId == i);
+            bool isReserved = false;
+            Reservation resForSeat = new Reservation();
+            foreach (Reservation res in reservations)
+			{
+                if(res.SeatId == i)
+				{
+                    resForSeat = res;
+                    isReserved = true;
+				}
+			}
             Button SeatButton = Seats[(int)i - 1].Query<Button>("SelectButton");
             VisualElement SeatIcon = Seats[(int)i - 1].Query<VisualElement>("Icon");
 
-            if (resForSeat != null)
+            if (isReserved)
 			{
                 // This seat is reserved.
                 if(resForSeat.UserId == webClient.UserId)

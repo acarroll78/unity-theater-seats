@@ -1,31 +1,28 @@
 ﻿using System;
 using System.Collections.Generic;
+using FlatBuffers;
 
 public class UserDatabase
 {
-	private Dictionary<UInt32, User> Users; //< Keyed by UserId.
-	private UInt32 HighestId;
+	private Dictionary<UInt32, User> Users = new Dictionary<UInt32, User>(); //< Keyed by UserId.
+	private UInt32 HighestId = 0;
 
-	public UserDatabase(User[] ExistingUsers)
+	public UserDatabase()
 	{
-		Users = new Dictionary<UInt32, User>();
-		HighestId = 1;
 
-		foreach (User existingUser in ExistingUsers)
+	}
+
+	public UserDatabase(User[] NewUsers)
+	{
+		foreach (User newUser in NewUsers)
 		{
-			if (GetUserById(existingUser.Id) == null)
+			if (!Users.ContainsKey(newUser.Id))
 			{
-				Users.Add(existingUser.Id, existingUser);
-
-				if (existingUser.Id > HighestId)
-				{
-					HighestId = existingUser.Id;
-				}
+				AddUser(newUser.Name, newUser.Id);
 			}
 		}
 	}
 
-	// Gets all users
 	public User[] GetAllUsers()
 	{
 		List<User> userList = new List<User>();
@@ -36,10 +33,10 @@ public class UserDatabase
 		return userList.ToArray();
 	}
 
-	// Returns null if not found.
+	// Returns default initialized user if not found
 	public User GetUserById(UInt32 Id)
 	{
-		return Users.ContainsKey(Id) ? Users[Id] : null;
+		return Users.ContainsKey(Id) ? Users[Id] : new User();
 	}
 
 	// Attempts to add a new user and increments the internal id counter if successful.
@@ -54,8 +51,32 @@ public class UserDatabase
 			}
 		}
 
-		User newUser = new User(Name, ++HighestId);
-		Users.Add(newUser.Id, newUser);
+		User newUser = AddUser(Name, ++HighestId);
+		return newUser;
+	}
+
+	public void AddUser(User NewUser)
+	{
+		if (!Users.ContainsKey(NewUser.Id))
+		{
+			Users.Add(NewUser.Id, NewUser);
+			if(NewUser.Id > HighestId)
+			{
+				HighestId = NewUser.Id;
+			}
+		}
+	}
+
+	private User AddUser(string Name, UInt32 Id)
+	{
+		FlatBufferBuilder builder = new FlatBufferBuilder(256);
+		StringOffset nameOffset = builder.CreateString(Name);
+		Offset<User> newUserOffset = User.CreateUser(builder, nameOffset, Id);
+		builder.Finish(newUserOffset.Value);
+		byte[] bytes = builder.SizedByteArray();
+		ByteBuffer buffer = new ByteBuffer(bytes);
+		User newUser = User.GetRootAsUser(buffer);
+		Users.Add(Id, newUser);
 
 		return newUser;
 	}

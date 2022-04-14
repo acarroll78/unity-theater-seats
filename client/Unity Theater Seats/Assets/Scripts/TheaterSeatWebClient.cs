@@ -1,11 +1,10 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using UnityEngine;
 
 using NativeWebSocket;
+using FlatBuffers;
 
 public class TheaterSeatWebClient : MonoBehaviour
 {
@@ -24,8 +23,9 @@ public class TheaterSeatWebClient : MonoBehaviour
     private NativeWebSocket.WebSocket requestReservationsSocket = null;
     private NativeWebSocket.WebSocket reserveSeatSocket = null;
 
-    public string UserName { get; private set; }
-    public uint UserId { get; private set; }
+    private User currentUser;
+    public string UserName { get { return currentUser.Name; } }
+    public uint UserId { get { return currentUser.Id; } }
     public bool IsLoginReady { get; private set; }
     public bool HasLoggedIn { get; private set; }
 
@@ -37,8 +37,11 @@ public class TheaterSeatWebClient : MonoBehaviour
     // Start is called before the first frame update
     void Start ()
     {
-        // This DB needs to be setup immediately (with an empty List)
+        // DBs need to be setup immediately (with an empty List)
+        ShowDB = new ShowDatabase();
         ReservationDB = new ReservationDatabase();
+        FilmDB = new FilmDatabase();
+        bool printDetails = false;
 
         // Initialize all the sockets and routes.
         loginWebSocket = new WebSocket(webAddress + loginRoute);
@@ -50,22 +53,23 @@ public class TheaterSeatWebClient : MonoBehaviour
         // Request all of the basic data from the server before enabling login.
         requestReservationsSocket.OnMessage += (bytes) =>
         {
-            Debug.Log("Request Shows response received from the server. Data: " + bytes);
-            var options = new JsonSerializerOptions
-            {
-                Converters = { new JsonStringEnumConverter() }
-            };
+            Debug.Log("Request Reservations response received from the server.");
+            ByteBuffer buffer = new ByteBuffer(bytes);
+            ReservationList reservationList = ReservationList.GetRootAsReservationList(buffer);
+            int numReservations = reservationList.ReservationsLength;
 
-            // This DB is added early and reservations are added sequentially unlike the other DBs as the server can send reservation data AT ANY TIME.
-            Reservation[] Reservations = JsonSerializer.Deserialize<Reservation[]>(bytes, options);
-            foreach (Reservation newRes in Reservations)
+            for (int i = 0; i < numReservations; ++i)
             {
-                ReservationDB.AddReservation(newRes);
+                Reservation newReservation = reservationList.Reservations(i).Value;
+                if (printDetails)
+                {
+                    Console.WriteLine("\tAdded Show: User Id ({0}), Show Id ({1}, Seat Id ({2})).", newReservation.UserId, newReservation.ShowId, newReservation.SeatId);
+                }
+                ReservationDB.AddReservation(newReservation);
             }
+
             requestReservationsSocket.Close();
         };
-
-        requestReservationsSocket.Connect();
 
         // Reserve Seat logic, this is also where we will hear about new reservations from other users.
         reserveSeatSocket.OnOpen += () =>
@@ -78,47 +82,59 @@ public class TheaterSeatWebClient : MonoBehaviour
         };
         reserveSeatSocket.OnMessage += (bytes) =>
         {
-            Debug.Log("Reserve seat response received from the server. Data: " + bytes);
-            var options = new JsonSerializerOptions
-            {
-                Converters = { new JsonStringEnumConverter() }
-            };
-            Reservation newRes = JsonSerializer.Deserialize<Reservation>(bytes, options);
-            ReservationDB.AddReservation(newRes);
-            OnSeatReserved.Invoke(newRes.UserId, newRes.ShowId, newRes.SeatId);
-        };
+            Debug.Log("Reserve Seat response received from the server.");
+            ByteBuffer buffer = new ByteBuffer(bytes);
+            Reservation newReservation = Reservation.GetRootAsReservation(buffer);
 
-        reserveSeatSocket.Connect();
+            if(printDetails)
+			{
+                Console.WriteLine("Added Reservation: User Id ({0}), Show Id ({1}), Seat Id ({2})", newReservation.UserId, newReservation.ShowId, newReservation.SeatId);
+            }
+
+            ReservationDB.AddReservation(newReservation);
+            OnSeatReserved.Invoke(newReservation.UserId, newReservation.ShowId, newReservation.SeatId);
+        };
 
         // Request for information on all films
         requestFilmsSocket.OnMessage += (bytes) =>
         {
-            Debug.Log("Request Films response received from the server. Data: " + bytes);
-            var options = new JsonSerializerOptions
-            {
-                Converters = { new JsonStringEnumConverter() }
-            };
-            Film[] Films = JsonSerializer.Deserialize<Film[]>(bytes, options);
-            FilmDB = new FilmDatabase(Films);
-            requestFilmsSocket.Close();
-        };
+            Debug.Log("Request Films response received from the server.");
+            ByteBuffer buffer = new ByteBuffer(bytes);
+            FilmList filmList = FilmList.GetRootAsFilmList(buffer);
+            int numFilms = filmList.FilmsLength;
 
-        requestFilmsSocket.Connect();
+            for(int i = 0; i < numFilms; ++i)
+			{
+                if(printDetails)
+				{
+                    Debug.Log("\tAdded Film: " + filmList.Films(i).Value.Name);
+                }
+                FilmDB.AddFilm(filmList.Films(i).Value);
+			}
+
+           requestFilmsSocket.Close();
+        };
 
         // Request for information on all shows
         requestShowsSocket.OnMessage += (bytes) =>
         {
-            Debug.Log("Request Shows response received from the server. Data: " + bytes);
-            var options = new JsonSerializerOptions
+            Debug.Log("Request Shows response received from the server.");
+            ByteBuffer buffer = new ByteBuffer(bytes);
+            ShowList showList = ShowList.GetRootAsShowList(buffer);
+            int numShows = showList.ShowsLength;
+
+            for (int i = 0; i < numShows; ++i)
             {
-                Converters = { new JsonStringEnumConverter() }
-            };
-            Show[] Shows = JsonSerializer.Deserialize<Show[]>(bytes, options);
-            ShowDB = new ShowDatabase(Shows);
+                Show newShow = showList.Shows(i).Value;
+                if (printDetails)
+                {
+                    Console.WriteLine("\tAdded Show: Film Id ({0}), at ShowTime ({1}).", newShow.FilmId, newShow.ShowTime);
+                }
+                ShowDB.AddShow(newShow);
+            }
+
             requestShowsSocket.Close();
         };
-
-        requestShowsSocket.Connect();
 
         // Login logic (this gets the id of the current user)
         loginWebSocket.OnOpen += () =>
@@ -133,14 +149,25 @@ public class TheaterSeatWebClient : MonoBehaviour
         };
         loginWebSocket.OnMessage += (bytes) =>
         {
-            UserId = BitConverter.ToUInt32(bytes, 0);
-            Debug.Log("Login response received from the server. User ID: " + UserId);
+            Debug.Log("Reserve Seat response received from the server.");
+
+            ByteBuffer buffer = new ByteBuffer(bytes);
+            currentUser = User.GetRootAsUser(buffer);
+
+            if(printDetails)
+			{
+                Debug.Log("\tUser ID: " + currentUser.Id + " with name: " + currentUser.Name);
+            }
             HasLoggedIn = true;
             loginWebSocket.Close();
             OnLoginSuccess.Invoke();
         };
 
-		loginWebSocket.Connect();
+        reserveSeatSocket.Connect();
+        requestReservationsSocket.Connect();
+        requestFilmsSocket.Connect();
+        requestShowsSocket.Connect();
+        loginWebSocket.Connect();
     }
 
     void Update()
@@ -167,21 +194,18 @@ public class TheaterSeatWebClient : MonoBehaviour
 	{
         if(IsLoginReady && !HasLoggedIn)
 		{
-            UserName = name;
             await loginWebSocket.SendText(name);
         }
     }
 
     public async void ReserveSeat(UInt32 ShowId, UInt32 SeatId)
 	{
-        var options = new JsonSerializerOptions
-        {
-            Converters = { new JsonStringEnumConverter() },
-            WriteIndented = false,
-        };
+        FlatBufferBuilder builder = new FlatBufferBuilder(256);
+        Offset<Reservation> reservationOffset = Reservation.CreateReservation(builder, UserId, ShowId, SeatId);
+        builder.Finish(reservationOffset.Value);
+        byte[] bytes = builder.SizedByteArray();
 
-        Reservation res = new Reservation(UserId, ShowId, SeatId);
-        string jsonString = JsonSerializer.Serialize(res, options);
-        await reserveSeatSocket.SendText(jsonString);
-	}
+        await reserveSeatSocket.Send(bytes);
+
+    }
 }

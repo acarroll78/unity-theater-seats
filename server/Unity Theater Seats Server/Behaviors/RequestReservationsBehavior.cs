@@ -1,9 +1,7 @@
 ﻿using System;
-using System.IO;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using WebSocketSharp;
 using WebSocketSharp.Server;
+using FlatBuffers;
 
 namespace Unity_Theater_Seats_Server
 {
@@ -18,18 +16,31 @@ namespace Unity_Theater_Seats_Server
 
 		protected override void OnOpen()
 		{
-			Console.WriteLine("/RequestReservations Connection established. Returning JSON list of reservations.");
+			Console.WriteLine("/RequestReservations Connection established.");
 
-			// Convert all existing reservations into json and send.
-			var options = new JsonSerializerOptions
+			Reservation[] existingReservations = ReservationDB.GetAllReservations();
+
+			if(existingReservations.Length > 0)
 			{
-				Converters = { new JsonStringEnumConverter() },
-				WriteIndented = false,
-			};
+				var builder = new FlatBufferBuilder(65536);
+				Offset<Reservation>[] reservationOffsets = new Offset<Reservation>[existingReservations.Length];
+				int resIndex = 0;
+				foreach (Reservation existingReservation in existingReservations)
+				{
+					var reservationOffset = Reservation.CreateReservation(builder, existingReservation.UserId, existingReservation.ShowId, existingReservation.SeatId);
+					reservationOffsets[resIndex++] = reservationOffset;
+				}
 
-			Reservation[] res = ReservationDB.GetAllReservations();
-			string jsonString = JsonSerializer.Serialize(res, options);
-			Send(jsonString);
+				// Console.WriteLine("/RequestReservations Returning flat buffer containing a ReservationList with {0} Reservations.", existingReservations.Length);
+
+				FlatBuffers.VectorOffset reservationVectorOffset = ReservationList.CreateReservationsVector(builder, reservationOffsets);
+				ReservationList.StartReservationList(builder);
+				ReservationList.AddReservations(builder, reservationVectorOffset);
+				var reservationList = ReservationList.EndReservationList(builder);
+				builder.Finish(reservationList.Value);
+				byte[] buffer = builder.SizedByteArray();
+				Send(buffer);
+			}
 		}
 
 		protected override void OnClose(CloseEventArgs e)
