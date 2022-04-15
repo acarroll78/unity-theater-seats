@@ -2,6 +2,9 @@
 
 A visual representation of a movie theater seat reservation system that includes a front end written in Unity and a C# backend.
 
+## Unity Version
+2021.3.0f1
+
 ## Supported platforms
 win64, WebGL
 
